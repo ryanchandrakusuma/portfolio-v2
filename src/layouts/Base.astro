@@ -1,0 +1,95 @@
+---
+import "../styles/global.css";
+import { person } from "../data/site.js";
+import { u } from "../lib/url.js";
+
+const { title, description, home = false } = Astro.props;
+const stages = [
+  ["run", "run"],
+  ["experience", "experience"],
+  ["design-docs", "design docs"],
+  ["catalog", "catalog"],
+  ["skills", "skills"],
+  ["contact", "contact"],
+];
+const year = new Date().getFullYear();
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="icon" href={u("favicon.svg")} type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script is:inline>
+    try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap row">
+      <a class="brand" href={u("")}><span class="dot"></span>{person.handle}.portfolio</a>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle light/dark theme">theme: dark</button>
+    </div>
+    <nav class="dag" aria-label="Sections">
+      <div class="wrap">
+        <ol>
+          {stages.map(([id, label]) => (
+            <li data-stage={id}><a href={home ? `#${id}` : u(`#${id}`)}>{label}</a></li>
+          ))}
+        </ol>
+      </div>
+    </nav>
+  </header>
+
+  <slot />
+
+  <footer>
+    <div class="wrap">
+      <span>© {year} {person.name} · built with Astro</span>
+      <span>status: <span style="color:var(--ok)">● healthy</span></span>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle
+    const root = document.documentElement;
+    const btn = document.getElementById("theme-btn");
+    const isLight = () => root.getAttribute("data-theme") === "light";
+    const paint = () => { if (btn) btn.textContent = `theme: ${isLight() ? "light" : "dark"}`; };
+    paint();
+    btn?.addEventListener("click", () => {
+      const next = isLight() ? "dark" : "light";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+      paint();
+    });
+
+    // DAG nav: mark stages done/running as the reader scrolls
+    const items = [...document.querySelectorAll<HTMLLIElement>(".dag li")];
+    const sections = items
+      .map((li) => document.getElementById(li.dataset.stage || ""))
+      .filter((s): s is HTMLElement => !!s);
+    if (sections.length) {
+      const update = () => {
+        const y = window.scrollY + window.innerHeight * 0.35;
+        let current = 0;
+        sections.forEach((s, i) => { if (s.offsetTop <= y) current = i; });
+        const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 4;
+        if (atBottom) current = sections.length - 1;
+        items.forEach((li, i) => {
+          li.classList.toggle("done", i < current || (atBottom && i === current));
+          li.classList.toggle("running", i === current && !atBottom);
+        });
+      };
+      update();
+      window.addEventListener("scroll", update, { passive: true });
+      window.addEventListener("resize", update);
+    }
+  </script>
+</body>
+</html>

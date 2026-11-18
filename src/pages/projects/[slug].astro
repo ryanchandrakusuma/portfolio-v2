@@ -1,0 +1,63 @@
+---
+import Base from "../../layouts/Base.astro";
+import { projects, tone } from "../../lib/entries.js";
+import { u } from "../../lib/url.js";
+import { person } from "../../data/site.js";
+
+export function getStaticPaths() {
+  return projects.map((p, i) => ({
+    params: { slug: p.slug },
+    props: { project: p, prev: projects[i - 1] ?? null, next: projects[i + 1] ?? null },
+  }));
+}
+
+const { project, prev, next } = Astro.props;
+const { data, Content } = project;
+const images = data.images ?? [];
+const phones = data.phones ?? [];
+const links = data.links ?? [];
+---
+<Base title={`${data.title} — ${person.name}`} description={data.summary}>
+  <main class="wrap">
+    <header class="page-head">
+      <a class="crumb" href={u("#catalog")}>← project catalog</a>
+      <div class="mono" style="color:var(--muted);font-size:.8rem;margin-bottom:10px">{data.type} · <span class={`pill ${tone(data.status)}`}>{data.status}</span></div>
+      <h1>{data.title}</h1>
+      <p class="sub">{data.summary}</p>
+      <div class="tags">{data.stack.map((s) => <span>{s}</span>)}</div>
+      {links.length > 0 && (
+        <div class="links">
+          {links.map((l, i) => (
+            <a class={`btn ${i === 0 ? "primary" : ""}`} href={l.href} target="_blank" rel="noopener">{l.label} ↗</a>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <article class="prose">
+      <Content />
+    </article>
+
+    {images.length > 0 && (
+      <div class="gallery">
+        {images.map((img) => (
+          <a class={img.wide ? "wide" : ""} href={u(img.src)} target="_blank" rel="noopener">
+            <img src={u(img.src)} alt={img.alt} loading="lazy" />
+          </a>
+        ))}
+      </div>
+    )}
+    {phones.length > 0 && (
+      <div class="gallery phones">
+        {phones.map((img) => (
+          <a href={u(img.src)} target="_blank" rel="noopener"><img src={u(img.src)} alt={img.alt} loading="lazy" /></a>
+        ))}
+      </div>
+    )}
+
+    <nav class="pager" aria-label="More projects">
+      {prev ? <a href={u(`projects/${prev.slug}/`)}>← {prev.data.title}</a> : <span></span>}
+      {next ? <a href={u(`projects/${next.slug}/`)}>{next.data.title} →</a> : <a href={u("#contact")}>contact →</a>}
+    </nav>
+  </main>
+</Base>

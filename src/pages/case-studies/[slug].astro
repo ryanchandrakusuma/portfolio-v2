@@ -1,0 +1,47 @@
+---
+import Base from "../../layouts/Base.astro";
+import { docs, tone } from "../../lib/entries.js";
+import { u } from "../../lib/url.js";
+import { person } from "../../data/site.js";
+
+export function getStaticPaths() {
+  return docs.map((d, i) => ({
+    params: { slug: d.slug },
+    props: { doc: d, prev: docs[i - 1] ?? null, next: docs[i + 1] ?? null },
+  }));
+}
+
+const { doc, prev, next } = Astro.props;
+const { data, Content } = doc;
+---
+<Base title={`${data.short} — ${person.name}`} description={data.summary}>
+  <main class="wrap">
+    <header class="page-head">
+      <a class="crumb" href={u("#design-docs")}>← design docs</a>
+      <div class="mono" style="color:var(--muted);font-size:.8rem;margin-bottom:10px">{data.id} · {data.company} · <span class={`pill ${tone(data.status)}`}>{data.status}</span></div>
+      <h1>{data.title}</h1>
+      <p class="sub">{data.summary}</p>
+
+      <dl class="meta">
+        <div><dt>author</dt><dd>{person.name}</dd></div>
+        <div><dt>role</dt><dd>{data.role}</dd></div>
+        <div><dt>scope</dt><dd>{data.scope}</dd></div>
+        <div><dt>stack</dt><dd>{data.stack.join(" · ")}</dd></div>
+      </dl>
+
+      <div class="result">
+        <span class="before">{data.before}</span><span style="color:var(--muted)">→</span><span class="after">{data.after}</span>
+        <span class="label">{data.resultLabel}</span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <Content />
+    </article>
+
+    <nav class="pager" aria-label="More design docs">
+      {prev ? <a href={u(`case-studies/${prev.slug}/`)}>← {prev.data.short}</a> : <span></span>}
+      {next ? <a href={u(`case-studies/${next.slug}/`)}>{next.data.short} →</a> : <a href={u("#catalog")}>project catalog →</a>}
+    </nav>
+  </main>
+</Base>

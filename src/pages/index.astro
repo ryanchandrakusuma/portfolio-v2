@@ -1,0 +1,259 @@
+---
+import Base from "../layouts/Base.astro";
+import { person, runLog, jobs, skills, skillContexts, credentials } from "../data/site.js";
+import { docs, projects, tone } from "../lib/entries.js";
+import { u, fmtMonth, duration } from "../lib/url.js";
+
+// Vertical timeline, newest first. Scales with any number of jobs; `end: null` = current role ("Present").
+const timelineJobs = [...jobs].sort((a, b) => b.start.localeCompare(a.start));
+
+// Catalog filter chips: types first, then stack items used by more than one project
+const types = [...new Set(projects.map((p) => p.data.type))];
+const stackCount = {};
+projects.forEach((p) => p.data.stack.forEach((s) => (stackCount[s] = (stackCount[s] || 0) + 1)));
+const topStack = Object.entries(stackCount)
+  .filter(([, n]) => n > 1)
+  .sort((a, b) => b[1] - a[1])
+  .map(([s]) => s);
+
+const runDate = new Date().toISOString().slice(0, 10);
+const delay = (i) => `animation-delay:${0.25 + i * 0.35}s`;
+---
+<Base
+  home
+  title={`${person.name} — ${person.role} & ${person.secondaryRole}`}
+  description={`${person.name}: Data Engineer and Software Engineer building reliable ELT pipelines, data platforms and backend services with Python, Spark, AWS, Snowflake and Laravel.`}
+>
+  <main>
+    <!-- ===== RUN ===== -->
+    <div class="hero" id="run">
+      <div class="wrap">
+        <div class="roles">
+          <span class="role-main">{person.role}</span>
+          <span class="role-sep">+</span>
+          <span class="role-alt">{person.secondaryRole}</span>
+        </div>
+        <h1>4+ years of engineering, from software foundations to <em>data pipelines you can trust</em>.</h1>
+        <div class="split" aria-label="Experience breakdown">
+          <span><b>2.5+ yrs</b> data engineering</span>
+          <span><b>2 yrs</b> software engineering</span>
+        </div>
+        <p class="sub">
+          Hi, I'm Ryan, a Data Engineer who started out as a Software Engineer and still builds like one.
+          I build pipelines that run themselves, show you exactly what they're doing, and get the numbers right.
+          That means <strong>automation</strong>, <strong>observability</strong>, and <strong>accuracy</strong> come first.
+          I bring the same habits to backend services: clean APIs, solid data models, and code that's easy to maintain.
+        </p>
+        <p class="sub" style="font-size:.92rem">Open to <strong>{person.openTo}</strong>.</p>
+        <p class="sub" style="font-size:.92rem">{person.location}</p>
+
+        <div class="terminal" role="img" aria-label="Pipeline run log listing Ryan's skills: Python, SQL, PHP, Dart, PySpark, AWS Glue, Hadoop, Snowflake, MySQL, SQL Server, Airflow, DAG Factory, ECS, AWS, Cloudera, Terraform, Docker, Kubernetes, Jenkins, FastAPI, Laravel, Flutter">
+          <div class="bar"><span>airflow · dag: {person.handle}</span><span>run_id: {runDate}</span></div>
+          <div class="body" aria-hidden="true">
+            <div class="ln mut" style={delay(0)}>$ airflow dags trigger {person.handle}</div>
+            {runLog.map((l, i) => (
+              <div class="ln" style={delay(i + 1)}><span class="ok">✓</span> <span class="mut">{l.step.padEnd(14, " ")}</span> <span class={l.highlight ? "amber" : ""}>{l.text}</span></div>
+            ))}
+            <div class="ln" style={delay(runLog.length + 1)}><span class="amber">●</span> <span class="mut">{"next_role".padEnd(14, " ")}</span> <span class="cursor">queued: open to data engineer & software engineer roles</span></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <a class="btn primary" href="#design-docs">read the design docs →</a>
+          <a class="btn" href="#contact">contact</a>
+          {person.cv && <a class="btn" href={u(person.cv)}>download cv</a>}
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EXPERIENCE ===== -->
+    <section id="experience">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Run history</h2>
+          <span class="task">task: <b>experience</b> · {jobs.filter((j) => j.kind !== "break").length} runs · click a row for logs</span>
+        </div>
+        <ol class="log">
+          <li class="log-item">
+            <span class="log-node queued" aria-label="queued"></span>
+            <details class="run">
+              <summary>
+                <span class="who"><b>Your team?</b><span>Data Engineer · Software Engineer</span></span>
+                <span class="when">queued</span>
+                <span class="metric" style="color:var(--muted)">awaiting trigger</span>
+              </summary>
+              <div class="detail">
+                <p>Open to {person.openTo}, remote or with relocation. <a href="#contact">Trigger this run →</a></p>
+              </div>
+            </details>
+          </li>
+
+          {timelineJobs.map((j) => (
+            <li class="log-item">
+              <span class={`log-node ${j.kind === "break" ? "break" : j.end ? "" : "running"}`} aria-label={j.kind === "break" ? "career break" : j.end ? "completed" : "running"}></span>
+              <details class={`run ${j.kind === "break" ? "break" : ""}`}>
+                <summary>
+                  <span class="who">
+                    <b>{j.company}</b><span>{j.role}</span>
+                    {j.location && <span class={`loc ${j.location.toLowerCase() === "remote" ? "remote" : "onsite"}`}>{j.location}</span>}
+                  </span>
+                  <span class="when">{fmtMonth(j.start)} – {fmtMonth(j.end)}<em>{duration(j.start, j.end)}</em></span>
+                  <span class="metric">{j.metric}</span>
+                </summary>
+                <div class="detail">
+                  <ul>{j.points.map((p) => <li>{p}</li>)}</ul>
+                  {j.stack && <p class="stack-line"><b>Tech stack:</b> {j.stack.join(", ")}</p>}
+                  {j.link && <a href={u(j.link.href)}>open {j.link.label} →</a>}
+                </div>
+              </details>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <!-- ===== DESIGN DOCS ===== -->
+    <section id="design-docs">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Design docs</h2>
+          <span class="task">task: <b>case studies</b> · context → decision → trade-offs → result</span>
+        </div>
+        <p class="lede">How I think through real problems, written the way engineers write design docs.</p>
+        <div class="docs">
+          {docs.map((d) => (
+            <a class="doc-card" href={u(`case-studies/${d.slug}/`)}>
+              <div class="id"><span>{d.data.id} · {d.data.company}</span><span class={`pill ${tone(d.data.status)}`}>{d.data.status}</span></div>
+              <div class="ba"><span class="before">{d.data.before}</span><span class="arrow">→</span><span class="after">{d.data.after}</span></div>
+              <h3>{d.data.short}</h3>
+              <p>{d.data.summary}</p>
+              <span class="open">open doc →</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CATALOG ===== -->
+    <section id="catalog">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Project catalog</h2>
+          <span class="task">task: <b>projects</b> · <span id="cat-count">{projects.length}</span> of {projects.length} rows</span>
+        </div>
+        <div class="catalog-tools">
+          <input class="search" id="cat-search" type="search" placeholder="SELECT * FROM projects WHERE …" aria-label="Search projects" />
+        </div>
+        <div class="chips" id="cat-chips">
+          <button class="chip" type="button" data-chip="" aria-pressed="true">all</button>
+          {types.map((t) => <button class="chip" type="button" data-chip={t} aria-pressed="false">{t}</button>)}
+          {topStack.map((s) => <button class="chip" type="button" data-chip={s} aria-pressed="false">{s}</button>)}
+        </div>
+        <div class="table" id="cat-table">
+          <div class="t-head"><span></span><span>project</span><span>type</span><span>stack</span><span>status</span></div>
+          {projects.map((p) => (
+            <a
+              class="t-row"
+              href={u(`projects/${p.slug}/`)}
+              data-tags={[p.data.type, ...p.data.stack].join("|")}
+              data-text={`${p.data.title} ${p.data.summary} ${p.data.type} ${p.data.stack.join(" ")}`.toLowerCase()}
+            >
+              <span class={`thumb ${p.data.portrait ? "portrait" : ""}`}>
+                {p.data.cover ? <img src={u(p.data.cover)} alt="" loading="lazy" /> : "wip"}
+              </span>
+              <span class="name"><b>{p.data.title}</b><span>{p.data.summary}</span></span>
+              <span class="type">{p.data.type}</span>
+              <span class="stack">{p.data.stack.slice(0, 4).map((s) => <span>{s}</span>)}</span>
+              <span class="st"><span class={`pill ${tone(p.data.status)}`}>{p.data.status}</span></span>
+            </a>
+          ))}
+          <div class="t-empty" id="cat-empty" hidden>0 rows returned.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SKILLS ===== -->
+    <section id="skills">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Skills lineage</h2>
+          <span class="task">task: <b>skills</b> · where each skill was actually used</span>
+        </div>
+        <div class="matrix-wrap">
+          <table class="matrix">
+            <thead>
+              <tr><th>skill</th>{skillContexts.map((c) => <th>{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              {skills.map((s) => (
+                <tr>
+                  <td>{s.name}</td>
+                  {skillContexts.map((c) => (
+                    <td>{s.used.includes(c)
+                      ? <span class="cell" role="img" aria-label={`used at ${c}`}></span>
+                      : <span class="cell no" aria-hidden="true"></span>}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="subhead">// education & certifications</h3>
+        <div class="creds">
+          {credentials.map((c) => (
+            <div class="cred"><b>{c.name}</b><span>{c.org}{c.note ? ` · ${c.note}` : ""}</span></div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CONTACT ===== -->
+    <section id="contact">
+      <div class="wrap">
+        <div class="contact">
+          <div class="sec-head" style="margin-bottom:10px"><span class="task">task: <b>contact</b> · awaiting trigger</span></div>
+          <h2>Trigger the next run.</h2>
+          <p>I'm open to {person.openTo}, remote or with relocation. Email is the fastest way to reach me.</p>
+          <div class="actions">
+            <a class="btn primary" href={`mailto:${person.email}`}>email me</a>
+            {person.linkedin && <a class="btn" href={person.linkedin}>linkedin</a>}
+            <a class="btn" href={person.github}>github</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Catalog: search + filter chips
+    const search = document.getElementById("cat-search") as HTMLInputElement | null;
+    const chips = [...document.querySelectorAll<HTMLButtonElement>("#cat-chips .chip")];
+    const rows = [...document.querySelectorAll<HTMLAnchorElement>("#cat-table .t-row")];
+    const empty = document.getElementById("cat-empty");
+    const count = document.getElementById("cat-count");
+    let active = "";
+
+    const apply = () => {
+      const q = (search?.value || "").trim().toLowerCase();
+      let shown = 0;
+      rows.forEach((r) => {
+        const tags = (r.dataset.tags || "").split("|");
+        const ok = (!active || tags.includes(active)) && (!q || (r.dataset.text || "").includes(q));
+        r.hidden = !ok;
+        if (ok) shown++;
+      });
+      if (count) count.textContent = String(shown);
+      if (empty) empty.hidden = shown !== 0;
+    };
+
+    chips.forEach((c) =>
+      c.addEventListener("click", () => {
+        active = c.dataset.chip || "";
+        chips.forEach((x) => x.setAttribute("aria-pressed", String(x === c)));
+        apply();
+      })
+    );
+    search?.addEventListener("input", apply);
+  </script>
+</Base>
